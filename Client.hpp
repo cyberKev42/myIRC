@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:19:01 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/10 15:19:03 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/12 10:00:00 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,19 +14,25 @@
 #define CLIENT_HPP
 
 #include <string>
+#include <set>
+
+class Channel;
 
 class Client {
 private:
-    int socketFd;                  // Client's socket file descriptor
-    std::string nickname;          // Client's nickname
-    std::string username;          // Client's username
-    std::string realname;          // Client's real name
-    std::string hostname;          // Client's hostname
+    int socketFd;
+    std::string nickname;
+    std::string username;
+    std::string realname;
+    std::string hostname;
     
-    bool isAuthenticated;          // Has provided correct password
-    bool isRegistered;             // Has completed registration (NICK + USER)
+    bool isAuthenticated;
+    bool isRegistered;
     
-    std::string inputBuffer;       // Buffer for incomplete messages
+    std::string inputBuffer;   // Buffer for incomplete incoming messages
+    std::string outputBuffer;  // Buffer for pending outgoing messages
+    
+    std::set<Channel*> joinedChannels;  // Track channels this client is in
 
 public:
     Client(int fd);
@@ -40,7 +46,9 @@ public:
     const std::string& getHostname() const { return hostname; }
     bool getAuthenticated() const { return isAuthenticated; }
     bool getRegistered() const { return isRegistered; }
-    std::string& getBuffer() { return inputBuffer; }
+    std::string& getInputBuffer() { return inputBuffer; }
+    std::string& getOutputBuffer() { return outputBuffer; }
+    const std::set<Channel*>& getJoinedChannels() const { return joinedChannels; }
     
     // Setters
     void setNickname(const std::string& nick) { nickname = nick; }
@@ -50,8 +58,18 @@ public:
     void setAuthenticated(bool auth) { isAuthenticated = auth; }
     void setRegistered(bool reg) { isRegistered = reg; }
     
-    // Send data to client
-    void sendMessage(const std::string& message);
+    // Channel tracking
+    void addChannel(Channel* channel) { joinedChannels.insert(channel); }
+    void removeChannel(Channel* channel) { joinedChannels.erase(channel); }
+    
+    // Queue message for sending (adds to output buffer)
+    void queueMessage(const std::string& message);
+    
+    // Try to flush output buffer (returns true if buffer is now empty)
+    bool flushOutputBuffer();
+    
+    // Check if there's data waiting to be sent
+    bool hasDataToSend() const { return !outputBuffer.empty(); }
     
     // Get client prefix for messages (nickname!username@hostname)
     std::string getPrefix() const;

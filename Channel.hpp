@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:18:52 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/10 15:18:53 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/12 10:00:00 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,20 +21,21 @@ class Client;
 
 class Channel {
 private:
-    std::string name;                      // Channel name (e.g., #general)
-    std::string topic;                     // Channel topic
-    std::string key;                       // Channel password (if any)
+    std::string name;
+    std::string topic;
+    std::string topicSetBy;        // Who set the topic
+    std::string key;
     
-    std::vector<Client*> members;          // All clients in channel
-    std::set<Client*> operators;           // Clients with operator privileges
-    std::set<Client*> inviteList;          // Invited clients (for invite-only)
+    std::vector<Client*> members;
+    std::set<Client*> operators;
+    std::set<Client*> inviteList;
     
     // Channel modes
-    bool inviteOnly;                       // +i mode
-    bool topicRestricted;                  // +t mode (only ops can change topic)
-    bool hasKey;                           // +k mode (password protected)
-    bool hasUserLimit;                     // +l mode
-    int userLimit;                         // Max number of users
+    bool inviteOnly;      // +i
+    bool topicRestricted; // +t (only ops can change topic)
+    bool hasKey;          // +k
+    bool hasUserLimit;    // +l
+    size_t userLimit;
 
 public:
     Channel(const std::string& channelName);
@@ -44,6 +45,8 @@ public:
     void addMember(Client* client);
     void removeMember(Client* client);
     bool isMember(Client* client) const;
+    size_t getMemberCount() const { return members.size(); }
+    bool isEmpty() const { return members.empty(); }
     
     // Operator management
     void addOperator(Client* client);
@@ -52,6 +55,7 @@ public:
     
     // Invite management
     void addToInviteList(Client* client);
+    void removeFromInviteList(Client* client);
     bool isInvited(Client* client) const;
     
     // Broadcasting
@@ -60,20 +64,36 @@ public:
     // Getters
     const std::string& getName() const { return name; }
     const std::string& getTopic() const { return topic; }
+    const std::string& getTopicSetBy() const { return topicSetBy; }
     const std::string& getKey() const { return key; }
     const std::vector<Client*>& getMembers() const { return members; }
     bool getInviteOnly() const { return inviteOnly; }
     bool getTopicRestricted() const { return topicRestricted; }
     bool getHasKey() const { return hasKey; }
     bool getHasUserLimit() const { return hasUserLimit; }
-    int getUserLimit() const { return userLimit; }
+    size_t getUserLimit() const { return userLimit; }
     
     // Setters
-    void setTopic(const std::string& newTopic) { topic = newTopic; }
-    void setKey(const std::string& newKey) { key = newKey; hasKey = !newKey.empty(); }
+    void setTopic(const std::string& newTopic, const std::string& setBy) { 
+        topic = newTopic; 
+        topicSetBy = setBy;
+    }
+    void setKey(const std::string& newKey) { 
+        key = newKey; 
+        hasKey = !newKey.empty(); 
+    }
     void setInviteOnly(bool mode) { inviteOnly = mode; }
     void setTopicRestricted(bool mode) { topicRestricted = mode; }
-    void setUserLimit(int limit) { userLimit = limit; hasUserLimit = (limit > 0); }
+    void setUserLimit(size_t limit) { 
+        userLimit = limit; 
+        hasUserLimit = (limit > 0); 
+    }
+    
+    // Get mode string for MODE query
+    std::string getModeString() const;
+    
+    // Get names list for NAMES reply
+    std::string getNamesReply(const std::string& requestingNick) const;
 };
 
 #endif

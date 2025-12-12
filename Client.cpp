@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:20:44 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/10 15:20:45 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/12 10:00:00 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,42 +14,72 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <iostream>
+#include <cerrno>
 
-// Constructor: Initialize a new client with their socket
-Client::Client(int fd) : socketFd(fd), isAuthenticated(false), isRegistered(false) {
-    // Client starts unauthenticated and unregistered
-    // They need to provide password (PASS), nickname (NICK), and username (USER)
+Client::Client(int fd) 
+    : socketFd(fd), 
+      isAuthenticated(false), 
+      isRegistered(false) {
 }
 
 Client::~Client() {
-    // Close the socket when client object is destroyed
     close(socketFd);
 }
 
-// Send a message to this client
-void Client::sendMessage(const std::string& message) {
-    // IRC protocol requires messages to end with \r\n (carriage return + newline)
+// Queue a message for sending
+// This adds to the output buffer instead of sending directly
+// The server's poll loop will handle actually sending when the socket is ready
+void Client::queueMessage(const std::string& message) {
     std::string fullMessage = message;
-    if (fullMessage.empty() || fullMessage[fullMessage.size() - 1] != '\n') {
+    
+    // Ensure message ends with \r\n (IRC protocol requirement)
+    if (fullMessage.length() < 2 || 
+        fullMessage.substr(fullMessage.length() - 2) != "\r\n") {
+        // Remove any existing line endings first
+        while (!fullMessage.empty() && 
+               (fullMessage[fullMessage.length() - 1] == '\r' || 
+                fullMessage[fullMessage.length() - 1] == '\n')) {
+            fullMessage.erase(fullMessage.length() - 1);
+        }
         fullMessage += "\r\n";
     }
     
-    // send() transmits data through the socket
-    // Parameters:
-    //   - socketFd: the client's socket
-    //   - data pointer: what to send
-    //   - length: how many bytes
-    //   - flags: 0 for default behavior
-    ssize_t bytesSent = send(socketFd, fullMessage.c_str(), fullMessage.length(), 0);
+    outputBuffer += fullMessage;
+}
+
+// Try to send data from the output buffer
+// Returns true if buffer is now empty (all data sent)
+// Returns false if there's still data to send
+bool Client::flushOutputBuffer() {
+    if (outputBuffer.empty()) {
+        return true;
+    }
+    
+    // Try to send as much as possible
+    ssize_t bytesSent = send(socketFd, outputBuffer.c_str(), outputBuffer.length(), 0);
     
     if (bytesSent < 0) {
-        std::cerr << "Error sending message to client " << nickname << std::endl;
+        // EAGAIN/EWOULDBLOCK means socket buffer is full, try again later
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return false;
+        }
+        // Real error - mark as error but don't crash
+        std::cerr << "Error sending to client " << socketFd << ": " << errno << std::endl;
+        return false;
     }
+    
+    if (bytesSent == 0) {
+        return false;
+    }
+    
+    // Remove the sent data from buffer
+    outputBuffer.erase(0, bytesSent);
+    
+    return outputBuffer.empty();
 }
 
 // Get the client's prefix for IRC messages
 // Format: nickname!username@hostname
-// Example: john!~john@192.168.1.1
 std::string Client::getPrefix() const {
     std::string prefix = nickname;
     if (!username.empty()) {

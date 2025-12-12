@@ -6,87 +6,118 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:18:35 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/10 15:18:36 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/12 10:00:00 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Channel.hpp"
 #include "Client.hpp"
 #include <algorithm>
+#include <sstream>
 
-// Constructor: Create a new channel
 Channel::Channel(const std::string& channelName) 
     : name(channelName), 
       inviteOnly(false), 
-      topicRestricted(true),  // By default, only operators can change topic
+      topicRestricted(true),
       hasKey(false), 
       hasUserLimit(false),
       userLimit(0) {
 }
 
 Channel::~Channel() {
-    // Clean up (members are managed by Server, so we don't delete them)
 }
 
-// Add a client to the channel
 void Channel::addMember(Client* client) {
-    // Check if already a member
     if (!isMember(client)) {
         members.push_back(client);
+        client->addChannel(this);
+        // Remove from invite list once they've joined
+        inviteList.erase(client);
     }
 }
 
-// Remove a client from the channel
 void Channel::removeMember(Client* client) {
-    // Find and remove from members vector
     std::vector<Client*>::iterator it = std::find(members.begin(), members.end(), client);
     if (it != members.end()) {
         members.erase(it);
+        client->removeChannel(this);
     }
-    
-    // Also remove from operators if they were one
     operators.erase(client);
+    inviteList.erase(client);
 }
 
-// Check if client is in the channel
 bool Channel::isMember(Client* client) const {
     return std::find(members.begin(), members.end(), client) != members.end();
 }
 
-// Make a client an operator
 void Channel::addOperator(Client* client) {
     if (isMember(client)) {
         operators.insert(client);
     }
 }
 
-// Remove operator privileges
 void Channel::removeOperator(Client* client) {
     operators.erase(client);
 }
 
-// Check if client is an operator
 bool Channel::isOperator(Client* client) const {
     return operators.find(client) != operators.end();
 }
 
-// Add client to invite list (for invite-only channels)
 void Channel::addToInviteList(Client* client) {
     inviteList.insert(client);
 }
 
-// Check if client is invited
+void Channel::removeFromInviteList(Client* client) {
+    inviteList.erase(client);
+}
+
 bool Channel::isInvited(Client* client) const {
     return inviteList.find(client) != inviteList.end();
 }
 
-// Send a message to all channel members
-// exclude: optional client to skip (usually the sender)
 void Channel::broadcast(const std::string& message, Client* exclude) {
     for (size_t i = 0; i < members.size(); i++) {
-        // Skip the excluded client (don't echo back to sender)
         if (members[i] != exclude) {
-            members[i]->sendMessage(message);
+            members[i]->queueMessage(message);
         }
     }
+}
+
+std::string Channel::getModeString() const {
+    std::string modes = "+";
+    std::string params = "";
+    
+    if (inviteOnly) modes += "i";
+    if (topicRestricted) modes += "t";
+    if (hasKey) {
+        modes += "k";
+        // Don't show key value in mode query for security
+    }
+    if (hasUserLimit) {
+        modes += "l";
+        std::ostringstream oss;
+        oss << userLimit;
+        params += " " + oss.str();
+    }
+    
+    if (modes == "+") {
+        return "+";  // No modes set
+    }
+    
+    return modes + params;
+}
+
+std::string Channel::getNamesReply(const std::string& requestingNick) const {
+    std::string result = "353 " + requestingNick + " = " + name + " :";
+    
+    for (size_t i = 0; i < members.size(); i++) {
+        if (i > 0) result += " ";
+        if (isOperator(members[i])) {
+            result += "@";
+        }
+        result += members[i]->getNickname();
+    }
+    
+    return result;
 }
