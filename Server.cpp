@@ -259,6 +259,16 @@ void Server::updatePollEvents(int fd, short events) {
     }
 }
 
+// Update poll events for ALL clients that have data waiting to be sent
+void Server::flushAllPendingWrites() {
+    for (std::map<int, Client*>::iterator it = clients.begin(); 
+         it != clients.end(); ++it) {
+        if (it->second->hasDataToSend()) {
+            updatePollEvents(it->first, POLLIN | POLLOUT);
+        }
+    }
+}
+
 // ============================================================================
 // COMMAND PARSING
 // ============================================================================
@@ -326,10 +336,10 @@ void Server::parseCommand(Client* client, const std::string& message) {
         }
     }
     
-    // After processing, ensure POLLOUT is set if needed
-    if (client->hasDataToSend()) {
-        updatePollEvents(client->getFd(), POLLIN | POLLOUT);
-    }
+    // After processing, update poll events for ALL clients with pending data
+    // This is crucial - when a message is broadcast to a channel, all recipients
+    // need POLLOUT set so their data gets sent
+    flushAllPendingWrites();
 }
 
 // ============================================================================

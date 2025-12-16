@@ -63,6 +63,7 @@ private:
     
     void tryCompleteRegistration(Client* client);
     void updatePollEvents(int fd, short events);
+    void flushAllPendingWrites();
     void cleanupEmptyChannels();
     
 public:

@@ -60,6 +60,7 @@ public:
     
     // Broadcasting
     void broadcast(const std::string& message, Client* exclude = NULL);
+    std::vector<Client*> getMembersWithPendingData(Client* exclude = NULL) const;
     
     // Getters
     const std::string& getName() const { return name; }

@@ -84,6 +84,16 @@ void Channel::broadcast(const std::string& message, Client* exclude) {
     }
 }
 
+std::vector<Client*> Channel::getMembersWithPendingData(Client* exclude) const {
+    std::vector<Client*> result;
+    for (size_t i = 0; i < members.size(); i++) {
+        if (members[i] != exclude && members[i]->hasDataToSend()) {
+            result.push_back(members[i]);
+        }
+    }
+    return result;
+}
+
 std::string Channel::getModeString() const {
     std::string modes = "+";
     std::string params = "";
