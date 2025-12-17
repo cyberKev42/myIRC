@@ -182,6 +182,9 @@ void Server::start() {
                 }
             }
         }
+        
+        // Remove any clients marked for removal (e.g., after QUIT command)
+        removeMarkedClients();
     }
 }
 
@@ -195,7 +198,7 @@ void Server::stop() {
 
 void Server::handleClientData(int clientFd) {
     Client* client = clients[clientFd];
-    if (!client) return;
+    if (!client || client->isMarkedForRemoval()) return;
     
     char buffer[512];
     std::memset(buffer, 0, sizeof(buffer));
@@ -242,7 +245,7 @@ void Server::handleClientData(int clientFd) {
 
 void Server::handleClientWrite(int clientFd) {
     Client* client = clients[clientFd];
-    if (!client) return;
+    if (!client || client->isMarkedForRemoval()) return;
     
     if (client->flushOutputBuffer()) {
         // All data sent, remove POLLOUT
@@ -340,6 +343,24 @@ void Server::parseCommand(Client* client, const std::string& message) {
     // This is crucial - when a message is broadcast to a channel, all recipients
     // need POLLOUT set so their data gets sent
     flushAllPendingWrites();
+}
+
+// Remove clients that were marked for removal (e.g., after QUIT)
+void Server::removeMarkedClients() {
+    std::vector<int> toRemove;
+    
+    for (std::map<int, Client*>::iterator it = clients.begin(); 
+         it != clients.end(); ++it) {
+        if (it->second->isMarkedForRemoval()) {
+            // Try to flush any remaining data first
+            it->second->flushOutputBuffer();
+            toRemove.push_back(it->first);
+        }
+    }
+    
+    for (size_t i = 0; i < toRemove.size(); i++) {
+        removeClient(toRemove[i]);
+    }
 }
 
 // ============================================================================
@@ -1097,10 +1118,11 @@ void Server::handleQuit(Client* client, const std::vector<std::string>& tokens) 
     // Send ERROR to the quitting client
     client->queueMessage("ERROR :Closing Link: " + client->getHostname() + " (" + reason + ")");
     
-    // Flush the output buffer before removing
-    client->flushOutputBuffer();
+    // Mark client for removal - don't call removeClient here!
+    // The client will be removed after we finish processing and send the ERROR message
+    client->setMarkedForRemoval(true);
     
-    removeClient(client->getFd());
+    cleanupEmptyChannels();
 }
 
 void Server::handlePing(Client* client, const std::vector<std::string>& tokens) {

@@ -28,6 +28,7 @@ private:
     
     bool isAuthenticated;
     bool isRegistered;
+    bool markedForRemoval;        // Flag to mark client for removal after QUIT
     
     std::string inputBuffer;   // Buffer for incomplete incoming messages
     std::string outputBuffer;  // Buffer for pending outgoing messages
@@ -46,6 +47,7 @@ public:
     const std::string& getHostname() const { return hostname; }
     bool getAuthenticated() const { return isAuthenticated; }
     bool getRegistered() const { return isRegistered; }
+    bool isMarkedForRemoval() const { return markedForRemoval; }
     std::string& getInputBuffer() { return inputBuffer; }
     std::string& getOutputBuffer() { return outputBuffer; }
     const std::set<Channel*>& getJoinedChannels() const { return joinedChannels; }
@@ -57,6 +59,7 @@ public:
     void setHostname(const std::string& host) { hostname = host; }
     void setAuthenticated(bool auth) { isAuthenticated = auth; }
     void setRegistered(bool reg) { isRegistered = reg; }
+    void setMarkedForRemoval(bool mark) { markedForRemoval = mark; }
     
     // Channel tracking
     void addChannel(Channel* channel) { joinedChannels.insert(channel); }

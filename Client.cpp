@@ -19,7 +19,8 @@
 Client::Client(int fd) 
     : socketFd(fd), 
       isAuthenticated(false), 
-      isRegistered(false) {
+      isRegistered(false),
+      markedForRemoval(false) {
 }
 
 Client::~Client() {
