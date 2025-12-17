@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:17:59 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/12 10:00:00 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/17 17:39:00 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,8 +53,6 @@ int main(int argc, char* argv[]) {
     // Check arguments
     if (argc != 3) {
         std::cerr << "Usage: " << argv[0] << " <port> <password>" << std::endl;
-        std::cerr << "  port: Port number (1-65535)" << std::endl;
-        std::cerr << "  password: Server connection password" << std::endl;
         return 1;
     }
     

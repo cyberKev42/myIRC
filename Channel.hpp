@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:18:52 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/12 10:00:00 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/17 17:46:11 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ private:
     
     // Channel modes
     bool inviteOnly;      // +i
-    bool topicRestricted; // +t (only ops can change topic)
+    bool topicRestricted; // +t
     bool hasKey;          // +k
     bool hasUserLimit;    // +l
     size_t userLimit;

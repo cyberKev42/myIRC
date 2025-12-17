@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:18:35 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/12 10:00:00 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/17 17:49:56 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -98,23 +98,21 @@ std::string Channel::getModeString() const {
     std::string modes = "+";
     std::string params = "";
     
-    if (inviteOnly) modes += "i";
-    if (topicRestricted) modes += "t";
-    if (hasKey) {
+    if (inviteOnly)
+        modes += "i";
+    if (topicRestricted)
+        modes += "t";
+    if (hasKey)
         modes += "k";
-        // Don't show key value in mode query for security
-    }
     if (hasUserLimit) {
         modes += "l";
         std::ostringstream oss;
         oss << userLimit;
         params += " " + oss.str();
     }
-    
-    if (modes == "+") {
-        return "+";  // No modes set
-    }
-    
+    if (modes == "+")
+        return "+";
+
     return modes + params;
 }
 

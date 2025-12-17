@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:17:50 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/12 10:00:00 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/17 17:26:56 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -469,7 +469,7 @@ void Server::cleanupEmptyChannels() {
         if (it != channels.end()) {
             delete it->second;
             channels.erase(it);
-            std::cout << "Channel " << emptyChannels[i] << " removed (empty)" << std::endl;
+            std::cout << "Channel " << emptyChannels[i] << " removed" << std::endl;
         }
     }
 }
