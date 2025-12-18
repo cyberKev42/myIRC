@@ -13,7 +13,7 @@
 NAME = ircserv
 
 CXX = c++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -MMD -MP
 
 SRCS = main.cpp \
        Server.cpp \
@@ -22,9 +22,12 @@ SRCS = main.cpp \
 
 OBJS = $(SRCS:.cpp=.o)
 
+DEPS = $(SRCS:.cpp=.d)
+
 HEADERS = Server.hpp \
           Client.hpp \
           Channel.hpp
+          
 
 # Colors
 GREEN = \033[0;32m
@@ -45,13 +48,15 @@ $(NAME): $(OBJS)
 
 clean:
 	@echo "$(RED)Removing object files...$(RESET)"
-	@rm -f $(OBJS)
+	@rm -f $(OBJS) $(DEPS)
 
 fclean: clean
 	@echo "$(RED)Removing $(NAME)...$(RESET)"
 	@rm -f $(NAME)
 
 re: fclean all
+
+-include $(DEPS)
 
 # Debug build with symbols
 debug: CXXFLAGS += -g -fsanitize=address
