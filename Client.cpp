@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:20:44 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/12 10:00:00 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/19 15:15:33 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ Client::~Client() {
 void Client::queueMessage(const std::string& message) {
     std::string fullMessage = message;
     
-    // Ensure message ends with \r\n (IRC protocol requirement)
+    // Ensure message ends with \r\n
     if (fullMessage.length() < 2 || 
         fullMessage.substr(fullMessage.length() - 2) != "\r\n") {
         // Remove any existing line endings first
@@ -51,7 +51,7 @@ void Client::queueMessage(const std::string& message) {
 // Try to send data from the output buffer
 // Returns true if buffer is now empty (all data sent)
 // Returns false if there's still data to send
-bool Client::flushOutputBuffer() {
+bool Client::sendOutputBuffer() {
     if (outputBuffer.empty()) {
         return true;
     }

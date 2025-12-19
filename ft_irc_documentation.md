@@ -279,7 +279,7 @@ MARKED_REMOVAL → DISCONNECTED
 #### `queueMessage(const std::string& message)`
 Adds message to output buffer with proper IRC line ending (`\r\n`).
 
-#### `flushOutputBuffer()`
+#### `sendOutputBuffer()`
 Attempts to send buffered data. Returns true if buffer is now empty.
 
 #### `getPrefix()`
@@ -490,9 +490,9 @@ while (iss >> token) {
 ## Dispatch Mechanism
 
 ```cpp
-if (command == "PASS") handlePass(client, tokens);
-else if (command == "NICK") handleNick(client, tokens);
-else if (command == "USER") handleUser(client, tokens);
+if (command == "PASS") cmdPass(client, tokens);
+else if (command == "NICK") cmdNick(client, tokens);
+else if (command == "USER") cmdUser(client, tokens);
 // ... etc
 else if (client->getRegistered())
     client->queueMessage("421 " + nick + " " + command + " :Unknown command");

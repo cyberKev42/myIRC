@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:17:50 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/17 17:26:56 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/19 15:14:50 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,9 +25,6 @@
 #include <cerrno>
 #include <algorithm>
 
-// ============================================================================
-// CONSTRUCTOR / DESTRUCTOR
-// ============================================================================
 
 Server::Server(int port, const std::string& password) 
     : serverSocket(-1), 
@@ -51,10 +48,7 @@ Server::~Server() {
     }
 }
 
-// ============================================================================
-// SERVER SETUP AND MAIN LOOP
-// ============================================================================
-
+// setup server
 void Server::setupServerSocket() {
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket < 0) {
@@ -146,13 +140,13 @@ void Server::start() {
         
         if (pollCount < 0) {
             if (errno == EINTR) {
-                continue;  // Interrupted by signal, just retry
+                continue;  // interrupted by signal, just retry
             }
             std::cerr << "Poll error" << std::endl;
             break;
         }
         
-        // Process events - iterate backwards to handle removals safely
+        // handle events
         for (size_t i = pollFds.size(); i > 0; i--) {
             size_t idx = i - 1;
             
@@ -165,25 +159,21 @@ void Server::start() {
                     acceptNewClient();
                 }
             } else {
-                // Check for errors first
                 if (pollFds[idx].revents & (POLLERR | POLLHUP | POLLNVAL)) {
                     removeClient(pollFds[idx].fd);
                     continue;
                 }
                 
-                // Handle readable data
                 if (pollFds[idx].revents & POLLIN) {
                     handleClientData(pollFds[idx].fd);
                 }
                 
-                // Handle writable (send buffered data)
                 if (pollFds[idx].revents & POLLOUT) {
                     handleClientWrite(pollFds[idx].fd);
                 }
             }
         }
         
-        // Remove any clients marked for removal (e.g., after QUIT command)
         removeMarkedClients();
     }
 }
@@ -192,10 +182,15 @@ void Server::stop() {
     isRunning = false;
 }
 
-// ============================================================================
-// CLIENT DATA HANDLING
-// ============================================================================
+const std::string& Server::getPassword() const {
+    return password;
+}
 
+const std::string& Server::getServerName() const {
+    return serverName;
+}
+
+// client data handling
 void Server::handleClientData(int clientFd) {
     Client* client = clients[clientFd];
     if (!client || client->isMarkedForRemoval()) return;
@@ -211,7 +206,7 @@ void Server::handleClientData(int clientFd) {
         } else if (errno != EWOULDBLOCK && errno != EAGAIN) {
             std::cerr << "Error reading from client " << clientFd << std::endl;
         } else {
-            return;  // Would block, try again later
+            return;
         }
         removeClient(clientFd);
         return;
@@ -237,7 +232,7 @@ void Server::handleClientData(int clientFd) {
         parseCommand(client, line);
     }
     
-    // Check if client has data to send after processing
+    // check if client has data to send after processing
     if (client->hasDataToSend()) {
         updatePollEvents(clientFd, POLLIN | POLLOUT);
     }
@@ -247,8 +242,8 @@ void Server::handleClientWrite(int clientFd) {
     Client* client = clients[clientFd];
     if (!client || client->isMarkedForRemoval()) return;
     
-    if (client->flushOutputBuffer()) {
-        // All data sent, remove POLLOUT
+    if (client->sendOutputBuffer()) {
+        // after sending data remove POLLOUT
         updatePollEvents(clientFd, POLLIN);
     }
 }
@@ -262,8 +257,8 @@ void Server::updatePollEvents(int fd, short events) {
     }
 }
 
-// Update poll events for ALL clients that have data waiting to be sent
-void Server::flushAllPendingWrites() {
+// update poll events for all clients that have data waiting to be sent
+void Server::sendAllData() {
     for (std::map<int, Client*>::iterator it = clients.begin(); 
          it != clients.end(); ++it) {
         if (it->second->hasDataToSend()) {
@@ -272,10 +267,6 @@ void Server::flushAllPendingWrites() {
     }
 }
 
-// ============================================================================
-// COMMAND PARSING
-// ============================================================================
-
 void Server::parseCommand(Client* client, const std::string& message) {
     std::vector<std::string> tokens;
     std::istringstream iss(message);
@@ -283,7 +274,6 @@ void Server::parseCommand(Client* client, const std::string& message) {
     
     while (iss >> token) {
         if (token[0] == ':' && tokens.size() > 0) {
-            // Everything after ':' is one parameter (trailing)
             std::string rest = token.substr(1);
             std::string remainder;
             if (std::getline(iss, remainder)) {
@@ -297,52 +287,41 @@ void Server::parseCommand(Client* client, const std::string& message) {
     
     if (tokens.empty()) return;
     
-    // Convert command to uppercase
     std::string command = tokens[0];
     for (size_t i = 0; i < command.length(); i++) {
         command[i] = std::toupper(command[i]);
     }
     
-    // Route to handler
     if (command == "PASS") {
-        handlePass(client, tokens);
+        cmdPass(client, tokens);
     } else if (command == "NICK") {
-        handleNick(client, tokens);
+        cmdNick(client, tokens);
     } else if (command == "USER") {
-        handleUser(client, tokens);
+        cmdUser(client, tokens);
     } else if (command == "JOIN") {
-        handleJoin(client, tokens);
+        cmdJoin(client, tokens);
     } else if (command == "PART") {
-        handlePart(client, tokens);
+        cmdPart(client, tokens);
     } else if (command == "PRIVMSG") {
-        handlePrivmsg(client, tokens);
+        cmdPrivmsg(client, tokens);
     } else if (command == "KICK") {
-        handleKick(client, tokens);
+        cmdKick(client, tokens);
     } else if (command == "INVITE") {
-        handleInvite(client, tokens);
+        cmdInvite(client, tokens);
     } else if (command == "TOPIC") {
-        handleTopic(client, tokens);
+        cmdTopic(client, tokens);
     } else if (command == "MODE") {
-        handleMode(client, tokens);
+        cmdMode(client, tokens);
     } else if (command == "QUIT") {
-        handleQuit(client, tokens);
+        cmdQuit(client, tokens);
     } else if (command == "PING") {
-        handlePing(client, tokens);
-    } else if (command == "PONG") {
-        // Ignore PONG responses
-    } else if (command == "CAP") {
-        // Capability negotiation - ignore for basic implementation
-        // Some clients send CAP LS at connect
+        cmdPing(client, tokens);
     } else {
         if (client->getRegistered()) {
             client->queueMessage("421 " + client->getNickname() + " " + command + " :Unknown command");
         }
     }
-    
-    // After processing, update poll events for ALL clients with pending data
-    // This is crucial - when a message is broadcast to a channel, all recipients
-    // need POLLOUT set so their data gets sent
-    flushAllPendingWrites();
+    sendAllData();
 }
 
 // Remove clients that were marked for removal (e.g., after QUIT)
@@ -352,8 +331,7 @@ void Server::removeMarkedClients() {
     for (std::map<int, Client*>::iterator it = clients.begin(); 
          it != clients.end(); ++it) {
         if (it->second->isMarkedForRemoval()) {
-            // Try to flush any remaining data first
-            it->second->flushOutputBuffer();
+            it->second->sendOutputBuffer();
             toRemove.push_back(it->first);
         }
     }
@@ -363,16 +341,12 @@ void Server::removeMarkedClients() {
     }
 }
 
-// ============================================================================
-// VALIDATION HELPERS
-// ============================================================================
-
 bool Server::isValidNickname(const std::string& nick) const {
     if (nick.empty() || nick.length() > 9) {
         return false;
     }
     
-    // First character must be a letter or special char
+    // first character must be a letter or special char
     char first = nick[0];
     if (!std::isalpha(first) && first != '[' && first != ']' && 
         first != '\\' && first != '`' && first != '_' && 
@@ -380,7 +354,7 @@ bool Server::isValidNickname(const std::string& nick) const {
         return false;
     }
     
-    // Rest can be letters, digits, or special chars
+    // rest can be letters, digits, or special chars
     for (size_t i = 1; i < nick.length(); i++) {
         char c = nick[i];
         if (!std::isalnum(c) && c != '[' && c != ']' && c != '\\' && 
@@ -398,15 +372,13 @@ bool Server::isValidChannelName(const std::string& name) const {
         return false;
     }
     
-    // Must start with # or &
     if (name[0] != '#' && name[0] != '&') {
         return false;
     }
     
-    // Cannot contain space, bell, comma, or colon
     for (size_t i = 1; i < name.length(); i++) {
         char c = name[i];
-        if (c == ' ' || c == '\007' || c == ',' || c == ':') {
+        if (c == ' ' || c == ',' || c == ':') {
             return false;
         }
     }
@@ -414,10 +386,7 @@ bool Server::isValidChannelName(const std::string& name) const {
     return true;
 }
 
-// ============================================================================
-// CLIENT MANAGEMENT
-// ============================================================================
-
+// handle clients
 void Server::removeClient(int clientFd) {
     std::map<int, Client*>::iterator it = clients.find(clientFd);
     if (it == clients.end()) return;
@@ -426,7 +395,7 @@ void Server::removeClient(int clientFd) {
     
     // Remove from all channels and notify
     const std::set<Channel*>& joinedChannels = client->getJoinedChannels();
-    std::set<Channel*> channelsCopy = joinedChannels;  // Copy because we'll modify during iteration
+    std::set<Channel*> channelsCopy = joinedChannels;  // Copy because it gets modified during iteration
     
     for (std::set<Channel*>::iterator chanIt = channelsCopy.begin(); 
          chanIt != channelsCopy.end(); ++chanIt) {
@@ -448,7 +417,6 @@ void Server::removeClient(int clientFd) {
     delete client;
     clients.erase(it);
     
-    // Clean up empty channels
     cleanupEmptyChannels();
     
     std::cout << "Client " << clientFd << " removed" << std::endl;
@@ -476,7 +444,6 @@ void Server::cleanupEmptyChannels() {
 
 Client* Server::getClientByNickname(const std::string& nickname) {
     for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
-        // Case-insensitive nickname comparison
         std::string clientNick = it->second->getNickname();
         std::string searchNick = nickname;
         
@@ -495,7 +462,6 @@ Client* Server::getClientByNickname(const std::string& nickname) {
 }
 
 Channel* Server::getChannel(const std::string& channelName) {
-    // Case-insensitive channel lookup
     std::string lowerName = channelName;
     for (size_t i = 0; i < lowerName.length(); i++) {
         lowerName[i] = std::tolower(lowerName[i]);
@@ -522,11 +488,8 @@ Channel* Server::createChannel(const std::string& channelName, Client* creator) 
     return channel;
 }
 
-// ============================================================================
-// IRC COMMAND HANDLERS
-// ============================================================================
-
-void Server::handlePass(Client* client, const std::vector<std::string>& tokens) {
+// commands
+void Server::cmdPass(Client* client, const std::vector<std::string>& tokens) {
     if (client->getRegistered()) {
         client->queueMessage("462 :You may not reregister");
         return;
@@ -544,7 +507,7 @@ void Server::handlePass(Client* client, const std::vector<std::string>& tokens) 
     }
 }
 
-void Server::handleNick(Client* client, const std::vector<std::string>& tokens) {
+void Server::cmdNick(Client* client, const std::vector<std::string>& tokens) {
     if (tokens.size() < 2) {
         client->queueMessage("431 :No nickname given");
         return;
@@ -552,13 +515,11 @@ void Server::handleNick(Client* client, const std::vector<std::string>& tokens) 
     
     std::string newNick = tokens[1];
     
-    // Validate nickname format
     if (!isValidNickname(newNick)) {
         client->queueMessage("432 " + newNick + " :Erroneous nickname");
         return;
     }
     
-    // Check if nickname is already in use
     Client* existing = getClientByNickname(newNick);
     if (existing != NULL && existing != client) {
         client->queueMessage("433 * " + newNick + " :Nickname is already in use");
@@ -568,12 +529,12 @@ void Server::handleNick(Client* client, const std::vector<std::string>& tokens) 
     std::string oldNick = client->getNickname();
     client->setNickname(newNick);
     
-    // If already registered, notify about nick change
+    // if already registered, notify about nick change
     if (client->getRegistered()) {
         std::string msg = ":" + (oldNick.empty() ? newNick : oldNick) + " NICK :" + newNick;
         client->queueMessage(msg);
         
-        // Notify all channels this user is in
+        // notify all channels this user is in
         const std::set<Channel*>& joinedChannels = client->getJoinedChannels();
         for (std::set<Channel*>::const_iterator it = joinedChannels.begin();
              it != joinedChannels.end(); ++it) {
@@ -584,7 +545,7 @@ void Server::handleNick(Client* client, const std::vector<std::string>& tokens) 
     tryCompleteRegistration(client);
 }
 
-void Server::handleUser(Client* client, const std::vector<std::string>& tokens) {
+void Server::cmdUser(Client* client, const std::vector<std::string>& tokens) {
     if (client->getRegistered()) {
         client->queueMessage("462 :You may not reregister");
         return;
@@ -618,15 +579,15 @@ void Server::tryCompleteRegistration(Client* client) {
     
     std::string nick = client->getNickname();
     client->queueMessage("001 " + nick + " :Welcome to the Internet Relay Network " + client->getPrefix());
-    client->queueMessage("002 " + nick + " :Your host is " + serverName + ", running version 1.0");
+    client->queueMessage("002 " + nick + " :Your host is " + serverName + ", running the latest version");
     client->queueMessage("003 " + nick + " :This server was created today");
-    client->queueMessage("004 " + nick + " " + serverName + " 1.0 o itkol");
-    client->queueMessage("375 " + nick + " :- " + serverName + " Message of the Day -");
-    client->queueMessage("372 " + nick + " :- Welcome to our IRC server!");
+    client->queueMessage("004 " + nick + " :" + serverName + " o itkol");
+    client->queueMessage("375 " + nick + " :" + serverName + " Message of the Day -");
+    client->queueMessage("372 " + nick + " :Welcome to our IRC server!");
     client->queueMessage("376 " + nick + " :End of /MOTD command");
 }
 
-void Server::handleJoin(Client* client, const std::vector<std::string>& tokens) {
+void Server::cmdJoin(Client* client, const std::vector<std::string>& tokens) {
     if (!client->getRegistered()) {
         client->queueMessage("451 :You have not registered");
         return;
@@ -718,7 +679,7 @@ void Server::handleJoin(Client* client, const std::vector<std::string>& tokens) 
     }
 }
 
-void Server::handlePart(Client* client, const std::vector<std::string>& tokens) {
+void Server::cmdPart(Client* client, const std::vector<std::string>& tokens) {
     if (!client->getRegistered()) {
         client->queueMessage("451 :You have not registered");
         return;
@@ -759,7 +720,7 @@ void Server::handlePart(Client* client, const std::vector<std::string>& tokens) 
     cleanupEmptyChannels();
 }
 
-void Server::handlePrivmsg(Client* client, const std::vector<std::string>& tokens) {
+void Server::cmdPrivmsg(Client* client, const std::vector<std::string>& tokens) {
     if (!client->getRegistered()) {
         client->queueMessage("451 :You have not registered");
         return;
@@ -804,7 +765,7 @@ void Server::handlePrivmsg(Client* client, const std::vector<std::string>& token
     }
 }
 
-void Server::handleKick(Client* client, const std::vector<std::string>& tokens) {
+void Server::cmdKick(Client* client, const std::vector<std::string>& tokens) {
     if (!client->getRegistered()) {
         client->queueMessage("451 :You have not registered");
         return;
@@ -849,7 +810,7 @@ void Server::handleKick(Client* client, const std::vector<std::string>& tokens) 
     cleanupEmptyChannels();
 }
 
-void Server::handleInvite(Client* client, const std::vector<std::string>& tokens) {
+void Server::cmdInvite(Client* client, const std::vector<std::string>& tokens) {
     if (!client->getRegistered()) {
         client->queueMessage("451 :You have not registered");
         return;
@@ -898,7 +859,7 @@ void Server::handleInvite(Client* client, const std::vector<std::string>& tokens
                               " :" + channel->getName());
 }
 
-void Server::handleTopic(Client* client, const std::vector<std::string>& tokens) {
+void Server::cmdTopic(Client* client, const std::vector<std::string>& tokens) {
     if (!client->getRegistered()) {
         client->queueMessage("451 :You have not registered");
         return;
@@ -946,7 +907,7 @@ void Server::handleTopic(Client* client, const std::vector<std::string>& tokens)
     }
 }
 
-void Server::handleMode(Client* client, const std::vector<std::string>& tokens) {
+void Server::cmdMode(Client* client, const std::vector<std::string>& tokens) {
     if (!client->getRegistered()) {
         client->queueMessage("451 :You have not registered");
         return;
@@ -1100,7 +1061,7 @@ void Server::handleMode(Client* client, const std::vector<std::string>& tokens) 
     }
 }
 
-void Server::handleQuit(Client* client, const std::vector<std::string>& tokens) {
+void Server::cmdQuit(Client* client, const std::vector<std::string>& tokens) {
     std::string reason = (tokens.size() >= 2) ? tokens[1] : "Client Quit";
     
     // Notify all channels this user is in
@@ -1125,7 +1086,7 @@ void Server::handleQuit(Client* client, const std::vector<std::string>& tokens) 
     cleanupEmptyChannels();
 }
 
-void Server::handlePing(Client* client, const std::vector<std::string>& tokens) {
+void Server::cmdPing(Client* client, const std::vector<std::string>& tokens) {
     if (tokens.size() < 2) {
         client->queueMessage("409 :No origin specified");
         return;

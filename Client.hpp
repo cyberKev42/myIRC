@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:19:01 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/12 10:00:00 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/19 15:07:20 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,7 +69,7 @@ public:
     void queueMessage(const std::string& message);
     
     // Try to flush output buffer (returns true if buffer is now empty)
-    bool flushOutputBuffer();
+    bool sendOutputBuffer();
     
     // Check if there's data waiting to be sent
     bool hasDataToSend() const { return !outputBuffer.empty(); }
