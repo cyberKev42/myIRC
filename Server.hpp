@@ -6,9 +6,11 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:18:12 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/19 18:10:52 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/19 18:17:02 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
+
 
 #ifndef SERVER_HPP
 #define SERVER_HPP

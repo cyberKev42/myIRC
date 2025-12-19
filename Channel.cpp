@@ -3,12 +3,13 @@
 /*                                                        :::      ::::::::   */
 /*   Channel.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
+/*   By: mvolgger <mvolgger@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/12/10 15:18:35 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/17 17:49:56 by kbrauer          ###   ########.fr       */
+/*   Created: 2025/12/19 18:04:35 by mvolgger          #+#    #+#             */
+/*   Updated: 2025/12/19 18:04:41 by mvolgger         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
 
 #include "Channel.hpp"
 #include "Client.hpp"
