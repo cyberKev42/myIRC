@@ -3,12 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
+/*   By: mvolgger <mvolgger@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/12/10 15:18:12 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/19 15:04:36 by kbrauer          ###   ########.fr       */
+/*   Created: 2025/12/19 18:04:24 by mvolgger          #+#    #+#             */
+/*   Updated: 2025/12/19 18:04:27 by mvolgger         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
+
 
 #ifndef SERVER_HPP
 #define SERVER_HPP
