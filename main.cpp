@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:17:59 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/17 17:39:00 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/19 18:01:58 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,10 +17,8 @@
 #include <cerrno>
 #include <climits>
 
-// Global server pointer for signal handler
 Server* g_server = NULL;
 
-// Signal handler for clean shutdown (Ctrl+C)
 void signalHandler(int signal) {
     (void)signal;
     std::cout << "\nReceived signal, shutting down server..." << std::endl;
@@ -29,34 +27,23 @@ void signalHandler(int signal) {
     }
 }
 
-// Validate port number
 bool isValidPort(const char* portStr, int& port) {
     char* endptr;
-    errno = 0;
     long val = std::strtol(portStr, &endptr, 10);
     
-    // Check for conversion errors
-    if (errno != 0 || *endptr != '\0' || endptr == portStr) {
+    if (*endptr != '\0')
         return false;
-    }
-    
-    // Check range (1-65535, but typically > 1024 for non-root)
-    if (val <= 0 || val > 65535) {
-        return false;
-    }
     
     port = static_cast<int>(val);
-    return true;
+    return (port > 0 && port <= 65535);
 }
 
 int main(int argc, char* argv[]) {
-    // Check arguments
     if (argc != 3) {
         std::cerr << "Usage: " << argv[0] << " <port> <password>" << std::endl;
         return 1;
     }
     
-    // Parse and validate port
     int port;
     if (!isValidPort(argv[1], port)) {
         std::cerr << "Error: Invalid port number '" << argv[1] << "'" << std::endl;
@@ -64,14 +51,12 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
-    // Get password
     std::string password = argv[2];
     if (password.empty()) {
         std::cerr << "Error: Password cannot be empty" << std::endl;
         return 1;
     }
     
-    // Setup signal handlers using sigaction (more robust than signal())
     struct sigaction sa;
     sa.sa_handler = signalHandler;
     sigemptyset(&sa.sa_mask);
@@ -86,7 +71,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
-    // Ignore SIGPIPE (happens when writing to closed socket)
+    // ignore problems that happen when writing to closed socketFD
     struct sigaction sa_pipe;
     sa_pipe.sa_handler = SIG_IGN;
     sigemptyset(&sa_pipe.sa_mask);
@@ -97,7 +82,7 @@ int main(int argc, char* argv[]) {
     }
     
     try {
-        Server server(port, password);
+        static Server server(port, password);
         g_server = &server;
         
         std::cout << "Starting IRC server on port " << port << std::endl;
