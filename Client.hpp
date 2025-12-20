@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
+/*   By: mvolgger <mvolgger@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:19:01 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/20 14:17:33 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/20 14:27:23 by mvolgger         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,10 +28,10 @@ private:
     
     bool isAuthenticated;
     bool isRegistered;
-    bool markedForRemoval;        // Flag to mark client for removal after QUIT
+    bool markedForRemoval;
     
-    std::string inputBuffer;   // Buffer for incomplete incoming messages
-    std::string outputBuffer;  // Buffer for pending outgoing messages
+    std::string inputBuffer; 
+    std::string outputBuffer; 
     
     std::set<Channel*> joinedChannels;
 
@@ -52,7 +52,7 @@ public:
     std::string& getOutputBuffer();
     const std::set<Channel*>& getJoinedChannels() const;
     
-    // Setters
+    // setters
     void setNickname(const std::string& nick);
     void setUsername(const std::string& user);
     void setRealname(const std::string& real);
@@ -61,20 +61,17 @@ public:
     void setRegistered(bool reg);
     void setMarkedForRemoval(bool mark);
     
-    // Channel tracking
     void addChannel(Channel* channel);
     void removeChannel(Channel* channel);
     
-    // Queue message for sending (adds to output buffer)
+    // qeue message for sending
     void queueMessage(const std::string& message);
     
-    // Try to flush output buffer (returns true if buffer is now empty)
     bool sendOutputBuffer();
     
-    // Check if there's data waiting to be sent
+    // check if client has data to send
     bool hasDataToSend() const { return !outputBuffer.empty(); }
     
-    // Get client prefix for messages (nickname!username@hostname)
     std::string getPrefix() const;
 };
 

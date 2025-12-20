@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
+/*   By: mvolgger <mvolgger@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:20:44 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/20 14:16:35 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/20 14:31:44 by mvolgger         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,16 +90,14 @@ void Client::removeChannel(Channel* channel) {
     joinedChannels.erase(channel);
 }
 
-// Queue a message for sending
-// This adds to the output buffer instead of sending directly
-// The server's poll loop will handle actually sending when the socket is ready
+
+// queue message to send: Adding to buffer. server poll loop will handle sending only when socket is ready 
 void Client::queueMessage(const std::string& message) {
     std::string fullMessage = message;
     
-    // Ensure message ends with \r\n
+    // ensure message ends with \r\n
     if (fullMessage.length() < 2 || 
         fullMessage.substr(fullMessage.length() - 2) != "\r\n") {
-        // Remove any existing line endings first
         while (!fullMessage.empty() && 
                (fullMessage[fullMessage.length() - 1] == '\r' || 
                 fullMessage[fullMessage.length() - 1] == '\n')) {
@@ -111,23 +109,20 @@ void Client::queueMessage(const std::string& message) {
     outputBuffer += fullMessage;
 }
 
-// Try to send data from the output buffer
-// Returns true if buffer is now empty (all data sent)
-// Returns false if there's still data to send
+// send data from output buffer. when buffer is empty means all data is sent
 bool Client::sendOutputBuffer() {
     if (outputBuffer.empty()) {
         return true;
     }
     
-    // Try to send as much as possible
+    // track how many bites were sent
     ssize_t bytesSent = send(socketFd, outputBuffer.c_str(), outputBuffer.length(), 0);
     
     if (bytesSent < 0) {
-        // EAGAIN/EWOULDBLOCK means socket buffer is full, try again later
+        // no error but buffer is full
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             return false;
         }
-        // Real error - mark as error but don't crash
         std::cerr << "Error sending to client " << socketFd << ": " << errno << std::endl;
         return false;
     }
@@ -136,14 +131,14 @@ bool Client::sendOutputBuffer() {
         return false;
     }
     
-    // Remove the sent data from buffer
+    // Re remove sent data from buffer
     outputBuffer.erase(0, bytesSent);
     
     return outputBuffer.empty();
 }
 
-// Get the client's prefix for IRC messages
-// Format: nickname!username@hostname
+// get the prefix of client for messages
+// format: nickname!username@hostname
 std::string Client::getPrefix() const {
     std::string prefix = nickname;
     if (!username.empty()) {
