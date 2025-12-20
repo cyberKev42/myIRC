@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
+/*   By: msimic <msimic@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/19 18:03:52 by mvolgger          #+#    #+#             */
-/*   Updated: 2025/12/20 14:58:30 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/20 15:15:03 by msimic           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,61 +50,40 @@ Server::~Server() {
     }
 }
 
-/*
-Sockets:    a software construct that wraps a combination of a protocol (TCP/UDP),
-            an IP address, and a port number = OS takes that combo to route msg
-            appropriately.
-            Sockets operate on the transport layer (OSI Model).
-
-TCP:        Data arrives in order and without dups, without lossing data (reliable).
-
-Sockets
-Lifecycle:  starts with creation of listening socket `socket()` which is bound to a
-            specific IP address and port `bind()`. `listen()` wains for the incoming
-            client connections `connect()` and once a client initiates the connection
-            the server accepts it `accept()`, creating a new socket instance that is
-            dedicated to that specif. client. And the OG socket `listen()` continus
-            to listen for new requests.
-            That's how server handles many diff clients concurrently, each with its
-            own socket. Usually handled with multy threading, but we handle it with
-            Non-blocking/async I/O - allowing a single thread to manage 1000 of open
-            sockets concurently (acchieved using sys calls eg. `poll()`). It notifies
-            the app only when specific socket are ready for writing or reading.
-
-*/
 void Server::setupServerSocket() {
+    // Create the TCP listening socket
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket < 0) {
         throw std::runtime_error("Failed to create socket");
     }
-    
+    // Enable address reuse so the socket can be re-bound quickly
     int opt = 1;
     if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         close(serverSocket);
         throw std::runtime_error("Failed to set socket options");
     }
-    
+    // Put the server socket into non-blocking mode
     if (fcntl(serverSocket, F_SETFL, O_NONBLOCK) < 0) {
         close(serverSocket);
         throw std::runtime_error("Failed to set non-blocking mode");
     }
-    
+    // Configure the IPv4 bind address for this server instance
     struct sockaddr_in serverAddr;
     std::memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_addr.s_addr = INADDR_ANY;
     serverAddr.sin_port = htons(port);
-    
+    // Bind the listening socket to the configured address/port
     if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
         close(serverSocket);
         throw std::runtime_error("Failed to bind socket");
     }
-    
+    // Start listening for incoming connections on the bound socket
     if (listen(serverSocket, 10) < 0) {
         close(serverSocket);
         throw std::runtime_error("Failed to listen on socket");
     }
-    
+    // Register the listening socket with poll for incoming data events
     struct pollfd serverPollFd;
     serverPollFd.fd = serverSocket;
     serverPollFd.events = POLLIN;
@@ -115,26 +94,26 @@ void Server::setupServerSocket() {
 }
 
 void Server::acceptNewClient() {
+    // Accept a new client connection, capturing its address
+    // and tolerating non-blocking retry cases
     struct sockaddr_in clientAddr;
     socklen_t clientLen = sizeof(clientAddr);
-    
     int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientLen);
-    
     if (clientSocket < 0) {
         if (errno != EWOULDBLOCK && errno != EAGAIN) {
             std::cerr << "Error accepting client" << std::endl;
         }
         return;
     }
-    
     if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) < 0) {
         std::cerr << "Failed to set client socket to non-blocking" << std::endl;
         close(clientSocket);
         return;
     }
     
+    // Create the client object, resolve its hostname,
+    // and register it by socket id
     Client* newClient = new Client(clientSocket);
-    
     // Set client hostname from connection address
     char hostStr[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(clientAddr.sin_addr), hostStr, INET_ADDRSTRLEN);
@@ -142,6 +121,7 @@ void Server::acceptNewClient() {
     
     clients[clientSocket] = newClient;
     
+    // Register the new client socket with poll to watch for incoming data
     struct pollfd clientPollFd;
     clientPollFd.fd = clientSocket;
     clientPollFd.events = POLLIN;
@@ -159,8 +139,8 @@ void Server::start() {
     std::cout << "Server started. Waiting for connections..." << std::endl;
     
     while (isRunning) {
+        // Poll all tracked sockets for readiness
         int pollCount = poll(&pollFds[0], pollFds.size(), -1);
-        
         if (pollCount < 0) {
             if (errno == EINTR) {
                 continue;  // interrupted by signal, just retry
@@ -173,24 +153,26 @@ void Server::start() {
         for (size_t i = pollFds.size(); i > 0; i--) {
             size_t idx = i - 1;
             
+            // Skip sockets with no reported events this cycle
             if (pollFds[idx].revents == 0) {
                 continue;
             }
-            
+            // If the listening socket is readable, accept incoming client connections
             if (pollFds[idx].fd == serverSocket) {
                 if (pollFds[idx].revents & POLLIN) {
                     acceptNewClient();
                 }
-            } else {
+            } else { // Handle activity on an existing client socket
+                // Drop the client if the socket reports an error, hangup, or invalid state
                 if (pollFds[idx].revents & (POLLERR | POLLHUP | POLLNVAL)) {
                     removeClient(pollFds[idx].fd);
                     continue;
                 }
-                
+                // Process readable client data
                 if (pollFds[idx].revents & POLLIN) {
                     handleClientData(pollFds[idx].fd);
                 }
-                
+                // Flush queued data to the client when the socket is writable
                 if (pollFds[idx].revents & POLLOUT) {
                     handleClientWrite(pollFds[idx].fd);
                 }
@@ -408,22 +390,25 @@ bool Server::isValidChannelName(const std::string& name) const {
 
 // handle clients
 void Server::removeClient(int clientFd) {
+    // Locate the client, copy its joined channel
+    // set for safe iteration during removal
     std::map<int, Client*>::iterator it = clients.find(clientFd);
     if (it == clients.end()) return;
-    
     Client* client = it->second;
-    
     const std::set<Channel*>& joinedChannels = client->getJoinedChannels();
     std::set<Channel*> channelsCopy = joinedChannels;
     
+    // For each channel the client joined,
+    // announce their QUIT and remove them from that channel
     for (std::set<Channel*>::iterator chanIt = channelsCopy.begin(); 
-         chanIt != channelsCopy.end(); ++chanIt) {
+            chanIt != channelsCopy.end(); ++chanIt) {
         Channel* channel = *chanIt;
         std::string quitMsg = ":" + client->getPrefix() + " QUIT :Client disconnected";
         channel->broadcast(quitMsg, client);
         channel->removeMember(client);
     }
     
+    // Remove the client's poll entry so we stop monitoring that socket
     for (std::vector<struct pollfd>::iterator pollIt = pollFds.begin(); 
          pollIt != pollFds.end(); ++pollIt) {
         if (pollIt->fd == clientFd) {
@@ -432,17 +417,18 @@ void Server::removeClient(int clientFd) {
         }
     }
     
+    // Delete the client object, drop it from tracking,
+    // and prune any now-empty channels
     delete client;
     clients.erase(it);
-    
     cleanupEmptyChannels();
     
     std::cout << "Client " << clientFd << " removed" << std::endl;
 }
 
 void Server::cleanupEmptyChannels() {
+    // Collect names of channels that currently have no members
     std::vector<std::string> emptyChannels;
-    
     for (std::map<std::string, Channel*>::iterator it = channels.begin();
          it != channels.end(); ++it) {
         if (it->second->isEmpty()) {
@@ -450,6 +436,7 @@ void Server::cleanupEmptyChannels() {
         }
     }
     
+    // Delete each empty channel and log its removal from the server list
     for (size_t i = 0; i < emptyChannels.size(); i++) {
         std::map<std::string, Channel*>::iterator it = channels.find(emptyChannels[i]);
         if (it != channels.end()) {
