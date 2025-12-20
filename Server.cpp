@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/19 18:03:52 by mvolgger          #+#    #+#             */
-/*   Updated: 2025/12/20 14:53:00 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/20 14:58:30 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -349,7 +349,6 @@ void Server::parseCommand(Client* client, const std::string& message) {
     sendAllData();
 }
 
-// Remove clients that were marked for removal (e.g., after QUIT)
 void Server::removeMarkedClients() {
     std::vector<int> toRemove;
     
@@ -371,20 +370,16 @@ bool Server::isValidNickname(const std::string& nick) const {
         return false;
     }
     
-    // first character must be a letter or special char
+    // first character must be letter
     char first = nick[0];
-    if (!std::isalpha(first) && first != '[' && first != ']' && 
-        first != '\\' && first != '`' && first != '_' && 
-        first != '^' && first != '{' && first != '|' && first != '}') {
+    if (!std::isalpha(first)) {
         return false;
     }
     
-    // rest can be letters, digits, or special chars
+    // rest can be letters or digits
     for (size_t i = 1; i < nick.length(); i++) {
         char c = nick[i];
-        if (!std::isalnum(c) && c != '[' && c != ']' && c != '\\' && 
-            c != '`' && c != '_' && c != '^' && c != '{' && 
-            c != '|' && c != '}' && c != '-') {
+        if (!std::isalnum(c) && c != '_' && c != '-') {
             return false;
         }
     }

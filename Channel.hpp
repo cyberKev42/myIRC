@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:18:52 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/20 14:55:06 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/20 15:01:28 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,7 +58,7 @@ public:
     void broadcast(const std::string& message, Client* exclude = NULL);
     std::vector<Client*> getMembersWithPendingData(Client* exclude = NULL) const;
     
-    // Getters
+    // getters
     const std::string& getName() const ;
     const std::string& getTopic() const;
     const std::string& getTopicSetBy() const;
@@ -70,7 +70,7 @@ public:
     bool getHasUserLimit() const;
     size_t getUserLimit() const;
     
-    // Settlers
+    // settlers
     void setTopic(const std::string& newTopic, const std::string& setBy);
     
     void setKey(const std::string& newKey);

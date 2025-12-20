@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mvolgger <mvolgger@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:20:44 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/20 14:35:03 by mvolgger         ###   ########.fr       */
+/*   Updated: 2025/12/20 15:00:54 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,10 +131,15 @@ bool Client::sendOutputBuffer() {
         return false;
     }
     
-    // Re remove sent data from buffer
+    // re remove sent data from buffer
     outputBuffer.erase(0, bytesSent);
     
     return outputBuffer.empty();
+}
+
+
+bool Client::hasDataToSend() const {
+    return !outputBuffer.empty();
 }
 
 // get the prefix of client for messages

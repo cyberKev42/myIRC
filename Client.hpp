@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mvolgger <mvolgger@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:19:01 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/20 14:27:23 by mvolgger         ###   ########.fr       */
+/*   Updated: 2025/12/20 15:01:01 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,13 +64,9 @@ public:
     void addChannel(Channel* channel);
     void removeChannel(Channel* channel);
     
-    // qeue message for sending
     void queueMessage(const std::string& message);
-    
     bool sendOutputBuffer();
-    
-    // check if client has data to send
-    bool hasDataToSend() const { return !outputBuffer.empty(); }
+    bool hasDataToSend() const;
     
     std::string getPrefix() const;
 };
