@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mvolgger <mvolgger@student.42.fr>          +#+  +:+       +#+        */
+/*   By: msimic <msimic@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/19 18:03:52 by mvolgger          #+#    #+#             */
-/*   Updated: 2025/12/19 18:03:55 by mvolgger         ###   ########.fr       */
+/*   Updated: 2025/12/20 10:09:08 by msimic           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,7 +50,28 @@ Server::~Server() {
     }
 }
 
-// setup server
+/*
+Sockets:    a software construct that wraps a combination of a protocol (TCP/UDP),
+            an IP address, and a port number = OS takes that combo to route msg
+            appropriately.
+            Sockets operate on the transport layer (OSI Model).
+
+TCP:        Data arrives in order and without dups, without lossing data (reliable).
+
+Sockets
+Lifecycle:  starts with creation of listening socket `socket()` which is bound to a
+            specific IP address and port `bind()`. `listen()` wains for the incoming
+            client connections `connect()` and once a client initiates the connection
+            the server accepts it `accept()`, creating a new socket instance that is
+            dedicated to that specif. client. And the OG socket `listen()` continus
+            to listen for new requests.
+            That's how server handles many diff clients concurrently, each with its
+            own socket. Usually handled with multy threading, but we handle it with
+            Non-blocking/async I/O - allowing a single thread to manage 1000 of open
+            sockets concurently (acchieved using sys calls eg. `poll()`). It notifies
+            the app only when specific socket are ready for writing or reading.
+
+*/
 void Server::setupServerSocket() {
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket < 0) {
