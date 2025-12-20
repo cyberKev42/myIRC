@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/19 18:03:52 by mvolgger          #+#    #+#             */
-/*   Updated: 2025/12/20 13:48:25 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/20 14:03:57 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1072,13 +1072,8 @@ void Server::cmdQuit(Client* client, const std::vector<std::string>& tokens) {
         channel->removeMember(client);
     }
     
-    // Send ERROR to the quitting client
-    client->queueMessage("Quitting session: " + client->getHostname() + " (" + reason + ")");
-    
-    // Mark client for removal - don't call removeClient here!
-    // The client will be removed after we finish processing and send the ERROR message
+    client->queueMessage("Quitting session: " + client->getNickname() + " (" + reason + ")");
     client->setMarkedForRemoval(true);
-    
     cleanupEmptyChannels();
 }
 

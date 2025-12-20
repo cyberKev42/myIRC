@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:20:44 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/19 15:15:33 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/20 14:16:35 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,69 @@ Client::Client(int fd)
 
 Client::~Client() {
     close(socketFd);
+}
+
+// getters and setters
+int Client::getFd() const {
+    return socketFd;
+}
+const std::string& Client::getNickname() const {
+    return nickname;
+}
+const std::string& Client::getUsername() const {
+    return username;
+}
+const std::string& Client::getRealname() const {
+    return realname;
+}
+const std::string& Client::getHostname() const {
+    return hostname; }
+bool Client::getAuthenticated() const {
+    return isAuthenticated;
+}
+bool Client::getRegistered() const {
+    return isRegistered;
+}
+bool Client::isMarkedForRemoval() const {
+    return markedForRemoval;
+}
+std::string& Client::getInputBuffer() {
+    return inputBuffer;
+}
+std::string& Client::getOutputBuffer() {
+    return outputBuffer;
+}
+const std::set<Channel*>& Client::getJoinedChannels() const {
+    return joinedChannels;
+}
+
+void Client::setNickname(const std::string& nick) {
+    nickname = nick;
+}
+void Client::setUsername(const std::string& user) {
+    username = user;
+}
+void Client::setRealname(const std::string& real) {
+    realname = real;
+}
+void Client::setHostname(const std::string& host) {
+    hostname = host;
+}
+void Client::setAuthenticated(bool auth) {
+    isAuthenticated = auth;
+}
+void Client::setRegistered(bool reg) {
+    isRegistered = reg;
+}
+void Client::setMarkedForRemoval(bool mark) {
+    markedForRemoval = mark;
+}
+
+void Client::addChannel(Channel* channel) {
+    joinedChannels.insert(channel);
+}
+void Client::removeChannel(Channel* channel) {
+    joinedChannels.erase(channel);
 }
 
 // Queue a message for sending

@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:19:01 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/19 18:10:13 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/20 14:17:33 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,37 +33,37 @@ private:
     std::string inputBuffer;   // Buffer for incomplete incoming messages
     std::string outputBuffer;  // Buffer for pending outgoing messages
     
-    std::set<Channel*> joinedChannels;  // Track channels this client is in
+    std::set<Channel*> joinedChannels;
 
 public:
     Client(int fd);
     ~Client();
     
     // Getters
-    int getFd() const { return socketFd; }
-    const std::string& getNickname() const { return nickname; }
-    const std::string& getUsername() const { return username; }
-    const std::string& getRealname() const { return realname; }
-    const std::string& getHostname() const { return hostname; }
-    bool getAuthenticated() const { return isAuthenticated; }
-    bool getRegistered() const { return isRegistered; }
-    bool isMarkedForRemoval() const { return markedForRemoval; }
-    std::string& getInputBuffer() { return inputBuffer; }
-    std::string& getOutputBuffer() { return outputBuffer; }
-    const std::set<Channel*>& getJoinedChannels() const { return joinedChannels; }
+    int getFd() const;
+    const std::string& getNickname() const;
+    const std::string& getUsername() const;
+    const std::string& getRealname() const;
+    const std::string& getHostname() const;
+    bool getAuthenticated() const;
+    bool getRegistered() const;
+    bool isMarkedForRemoval() const;
+    std::string& getInputBuffer();
+    std::string& getOutputBuffer();
+    const std::set<Channel*>& getJoinedChannels() const;
     
     // Setters
-    void setNickname(const std::string& nick) { nickname = nick; }
-    void setUsername(const std::string& user) { username = user; }
-    void setRealname(const std::string& real) { realname = real; }
-    void setHostname(const std::string& host) { hostname = host; }
-    void setAuthenticated(bool auth) { isAuthenticated = auth; }
-    void setRegistered(bool reg) { isRegistered = reg; }
-    void setMarkedForRemoval(bool mark) { markedForRemoval = mark; }
+    void setNickname(const std::string& nick);
+    void setUsername(const std::string& user);
+    void setRealname(const std::string& real);
+    void setHostname(const std::string& host);
+    void setAuthenticated(bool auth);
+    void setRegistered(bool reg);
+    void setMarkedForRemoval(bool mark);
     
     // Channel tracking
-    void addChannel(Channel* channel) { joinedChannels.insert(channel); }
-    void removeChannel(Channel* channel) { joinedChannels.erase(channel); }
+    void addChannel(Channel* channel);
+    void removeChannel(Channel* channel);
     
     // Queue message for sending (adds to output buffer)
     void queueMessage(const std::string& message);
