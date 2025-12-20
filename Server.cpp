@@ -6,7 +6,7 @@
 /*   By: mvolgger <mvolgger@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/19 18:03:52 by mvolgger          #+#    #+#             */
-/*   Updated: 2025/12/19 18:03:55 by mvolgger         ###   ########.fr       */
+/*   Updated: 2025/12/20 14:13:44 by mvolgger         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -195,7 +195,8 @@ const std::string& Server::getServerName() const {
 // client data handling
 void Server::handleClientData(int clientFd) {
     Client* client = clients[clientFd];
-    if (!client || client->isMarkedForRemoval()) return;
+    if (!client || client->isMarkedForRemoval()) 
+        return;
     
     char buffer[512];
     std::memset(buffer, 0, sizeof(buffer));
@@ -206,7 +207,7 @@ void Server::handleClientData(int clientFd) {
         if (bytesRead == 0) {
             std::cout << "Client " << clientFd << " disconnected" << std::endl;
         } else if (errno != EWOULDBLOCK && errno != EAGAIN) {
-            std::cerr << "Error reading from client " << clientFd << std::endl;
+            std::cerr << "Error reading from client" << clientFd << std::endl;
         } else {
             return;
         }
@@ -223,7 +224,7 @@ void Server::handleClientData(int clientFd) {
         std::string line = inputBuffer.substr(0, pos);
         inputBuffer.erase(0, pos + 1);
         
-        // Remove trailing \r if present
+        //REMOVE \n, only needed to find the end of cmd
         if (!line.empty() && line[line.size() - 1] == '\r') {
             line.erase(line.size() - 1);
         }
@@ -242,7 +243,8 @@ void Server::handleClientData(int clientFd) {
 
 void Server::handleClientWrite(int clientFd) {
     Client* client = clients[clientFd];
-    if (!client || client->isMarkedForRemoval()) return;
+    if (!client || client->isMarkedForRemoval()) 
+        return;
     
     if (client->sendOutputBuffer()) {
         // after sending data remove POLLOUT
@@ -395,9 +397,9 @@ void Server::removeClient(int clientFd) {
     
     Client* client = it->second;
     
-    // Remove from all channels and notify
+    // Remove from all the joind channels
     const std::set<Channel*>& joinedChannels = client->getJoinedChannels();
-    std::set<Channel*> channelsCopy = joinedChannels;  // Copy because it gets modified during iteration
+    std::set<Channel*> channelsCopy = joinedChannels;  // Copy so we can modify it
     
     for (std::set<Channel*>::iterator chanIt = channelsCopy.begin(); 
          chanIt != channelsCopy.end(); ++chanIt) {
