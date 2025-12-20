@@ -6,7 +6,7 @@
 /*   By: mvolgger <mvolgger@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/19 18:03:52 by mvolgger          #+#    #+#             */
-/*   Updated: 2025/12/20 14:13:44 by mvolgger         ###   ########.fr       */
+/*   Updated: 2025/12/20 14:18:22 by mvolgger         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,7 +50,28 @@ Server::~Server() {
     }
 }
 
-// setup server
+/*
+Sockets:    a software construct that wraps a combination of a protocol (TCP/UDP),
+            an IP address, and a port number = OS takes that combo to route msg
+            appropriately.
+            Sockets operate on the transport layer (OSI Model).
+
+TCP:        Data arrives in order and without dups, without lossing data (reliable).
+
+Sockets
+Lifecycle:  starts with creation of listening socket `socket()` which is bound to a
+            specific IP address and port `bind()`. `listen()` wains for the incoming
+            client connections `connect()` and once a client initiates the connection
+            the server accepts it `accept()`, creating a new socket instance that is
+            dedicated to that specif. client. And the OG socket `listen()` continus
+            to listen for new requests.
+            That's how server handles many diff clients concurrently, each with its
+            own socket. Usually handled with multy threading, but we handle it with
+            Non-blocking/async I/O - allowing a single thread to manage 1000 of open
+            sockets concurently (acchieved using sys calls eg. `poll()`). It notifies
+            the app only when specific socket are ready for writing or reading.
+
+*/
 void Server::setupServerSocket() {
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket < 0) {
@@ -587,7 +608,7 @@ void Server::tryCompleteRegistration(Client* client) {
     client->queueMessage("003 " + nick + " :This server was created today");
     client->queueMessage("004 " + nick + " :" + serverName + " o itkol");
     client->queueMessage("375 " + nick + " :" + serverName + " Message of the Day -");
-    client->queueMessage("372 " + nick + " :Welcome to our IRC server!");
+    client->queueMessage("372 " + nick + " :*Happy Christmas* and welcome to our little IRC server!");
     client->queueMessage("376 " + nick + " :End of /MOTD command");
 }
 
@@ -639,44 +660,36 @@ void Server::cmdJoin(Client* client, const std::vector<std::string>& tokens) {
         if (!channel) {
             channel = createChannel(channelName, client);
         } else {
-            // Check if already a member
             if (channel->isMember(client)) {
                 continue;
             }
-            
-            // Check invite-only
             if (channel->getInviteOnly() && !channel->isInvited(client)) {
                 client->queueMessage("473 " + channelName + " :Cannot join channel (+i)");
                 continue;
             }
-            
-            // Check user limit
             if (channel->getHasUserLimit() && 
                 channel->getMemberCount() >= channel->getUserLimit()) {
                 client->queueMessage("471 " + channelName + " :Cannot join channel (+l)");
                 continue;
             }
-            
-            // Check channel key
             if (channel->getHasKey() && key != channel->getKey()) {
                 client->queueMessage("475 " + channelName + " :Cannot join channel (+k)");
                 continue;
             }
-            
             channel->addMember(client);
         }
         
-        // Send JOIN to all channel members (including joiner)
+        // inform all members about joining
         std::string joinMsg = ":" + client->getPrefix() + " JOIN " + channel->getName();
         channel->broadcast(joinMsg, NULL);
         
-        // Send topic
+        // send topic
         if (!channel->getTopic().empty()) {
             client->queueMessage("332 " + client->getNickname() + " " + channel->getName() + 
                               " :" + channel->getTopic());
         }
         
-        // Send names list
+        // send names list
         client->queueMessage(channel->getNamesReply(client->getNickname()));
         client->queueMessage("366 " + client->getNickname() + " " + channel->getName() + 
                           " :End of /NAMES list");
@@ -696,7 +709,6 @@ void Server::cmdPart(Client* client, const std::vector<std::string>& tokens) {
     
     std::string reason = (tokens.size() >= 3) ? tokens[2] : client->getNickname();
     
-    // Handle multiple channels (comma-separated)
     std::istringstream chanStream(tokens[1]);
     std::string channelName;
     
@@ -708,13 +720,12 @@ void Server::cmdPart(Client* client, const std::vector<std::string>& tokens) {
             client->queueMessage("403 " + channelName + " :No such channel");
             continue;
         }
-        
         if (!channel->isMember(client)) {
             client->queueMessage("442 " + channelName + " :You're not on that channel");
             continue;
         }
         
-        // Send PART message to all channel members (including the one leaving)
+        // inform all members about leaving
         std::string partMsg = ":" + client->getPrefix() + " PART " + channel->getName() + " :" + reason;
         channel->broadcast(partMsg, NULL);
         
@@ -729,12 +740,10 @@ void Server::cmdPrivmsg(Client* client, const std::vector<std::string>& tokens) 
         client->queueMessage("451 :You have not registered");
         return;
     }
-    
     if (tokens.size() < 2) {
         client->queueMessage("411 :No recipient given (PRIVMSG)");
         return;
     }
-    
     if (tokens.size() < 3) {
         client->queueMessage("412 :No text to send");
         return;
@@ -749,7 +758,6 @@ void Server::cmdPrivmsg(Client* client, const std::vector<std::string>& tokens) 
             client->queueMessage("403 " + target + " :No such channel");
             return;
         }
-        
         if (!channel->isMember(client)) {
             client->queueMessage("404 " + target + " :Cannot send to channel");
             return;
@@ -774,7 +782,6 @@ void Server::cmdKick(Client* client, const std::vector<std::string>& tokens) {
         client->queueMessage("451 :You have not registered");
         return;
     }
-    
     if (tokens.size() < 3) {
         client->queueMessage("461 KICK :Not enough parameters");
         return;
@@ -789,12 +796,10 @@ void Server::cmdKick(Client* client, const std::vector<std::string>& tokens) {
         client->queueMessage("403 " + channelName + " :No such channel");
         return;
     }
-    
     if (!channel->isMember(client)) {
         client->queueMessage("442 " + channelName + " :You're not on that channel");
         return;
     }
-    
     if (!channel->isOperator(client)) {
         client->queueMessage("482 " + channelName + " :You're not channel operator");
         return;
@@ -819,7 +824,6 @@ void Server::cmdInvite(Client* client, const std::vector<std::string>& tokens) {
         client->queueMessage("451 :You have not registered");
         return;
     }
-    
     if (tokens.size() < 3) {
         client->queueMessage("461 INVITE :Not enough parameters");
         return;
@@ -833,12 +837,10 @@ void Server::cmdInvite(Client* client, const std::vector<std::string>& tokens) {
         client->queueMessage("403 " + channelName + " :No such channel");
         return;
     }
-    
     if (!channel->isMember(client)) {
         client->queueMessage("442 " + channelName + " :You're not on that channel");
         return;
     }
-    
     if (channel->getInviteOnly() && !channel->isOperator(client)) {
         client->queueMessage("482 " + channelName + " :You're not channel operator");
         return;
@@ -856,7 +858,6 @@ void Server::cmdInvite(Client* client, const std::vector<std::string>& tokens) {
     }
     
     channel->addToInviteList(targetClient);
-    
     client->queueMessage("341 " + client->getNickname() + " " + targetClient->getNickname() + 
                         " " + channel->getName());
     targetClient->queueMessage(":" + client->getPrefix() + " INVITE " + targetClient->getNickname() + 
@@ -868,7 +869,6 @@ void Server::cmdTopic(Client* client, const std::vector<std::string>& tokens) {
         client->queueMessage("451 :You have not registered");
         return;
     }
-    
     if (tokens.size() < 2) {
         client->queueMessage("461 TOPIC :Not enough parameters");
         return;
@@ -881,14 +881,13 @@ void Server::cmdTopic(Client* client, const std::vector<std::string>& tokens) {
         client->queueMessage("403 " + channelName + " :No such channel");
         return;
     }
-    
     if (!channel->isMember(client)) {
         client->queueMessage("442 " + channelName + " :You're not on that channel");
         return;
     }
     
+    // view and set topic
     if (tokens.size() == 2) {
-        // View topic
         if (channel->getTopic().empty()) {
             client->queueMessage("331 " + client->getNickname() + " " + channel->getName() + 
                               " :No topic is set");
@@ -897,7 +896,6 @@ void Server::cmdTopic(Client* client, const std::vector<std::string>& tokens) {
                               " :" + channel->getTopic());
         }
     } else {
-        // Set topic
         if (channel->getTopicRestricted() && !channel->isOperator(client)) {
             client->queueMessage("482 " + channelName + " :You're not channel operator");
             return;
@@ -916,7 +914,6 @@ void Server::cmdMode(Client* client, const std::vector<std::string>& tokens) {
         client->queueMessage("451 :You have not registered");
         return;
     }
-    
     if (tokens.size() < 2) {
         client->queueMessage("461 MODE :Not enough parameters");
         return;
@@ -924,7 +921,7 @@ void Server::cmdMode(Client* client, const std::vector<std::string>& tokens) {
     
     std::string target = tokens[1];
     
-    // Check if it's a channel mode
+    // change mode for channel
     if (target[0] == '#' || target[0] == '&') {
         Channel* channel = getChannel(target);
         
@@ -934,7 +931,6 @@ void Server::cmdMode(Client* client, const std::vector<std::string>& tokens) {
         }
         
         if (tokens.size() == 2) {
-            // View modes
             client->queueMessage("324 " + client->getNickname() + " " + channel->getName() + 
                               " " + channel->getModeString());
             return;
@@ -1053,14 +1049,13 @@ void Server::cmdMode(Client* client, const std::vector<std::string>& tokens) {
             }
         }
         
-        // Broadcast mode change if any modes were applied
         if (!appliedModes.empty() && appliedModes != "+" && appliedModes != "-") {
             std::string modeMsg = ":" + client->getPrefix() + " MODE " + channel->getName() + 
                                  " " + appliedModes + appliedParams;
             channel->broadcast(modeMsg, NULL);
         }
+    // no user modes needed according to subject
     } else {
-        // User mode - basic implementation (ignore for now as not required)
         client->queueMessage("502 :Cannot change mode for other users");
     }
 }
@@ -1068,7 +1063,6 @@ void Server::cmdMode(Client* client, const std::vector<std::string>& tokens) {
 void Server::cmdQuit(Client* client, const std::vector<std::string>& tokens) {
     std::string reason = (tokens.size() >= 2) ? tokens[1] : "Client Quit";
     
-    // Notify all channels this user is in
     const std::set<Channel*>& joinedChannels = client->getJoinedChannels();
     std::set<Channel*> channelsCopy = joinedChannels;
     
@@ -1081,7 +1075,7 @@ void Server::cmdQuit(Client* client, const std::vector<std::string>& tokens) {
     }
     
     // Send ERROR to the quitting client
-    client->queueMessage("ERROR :Closing Link: " + client->getHostname() + " (" + reason + ")");
+    client->queueMessage("Quitting session: " + client->getHostname() + " (" + reason + ")");
     
     // Mark client for removal - don't call removeClient here!
     // The client will be removed after we finish processing and send the ERROR message
