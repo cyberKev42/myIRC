@@ -6,7 +6,7 @@
 /*   By: mvolgger <mvolgger@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/10 15:20:44 by kbrauer           #+#    #+#             */
-/*   Updated: 2025/12/20 14:31:44 by mvolgger         ###   ########.fr       */
+/*   Updated: 2025/12/20 14:35:03 by mvolgger         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -149,3 +149,5 @@ std::string Client::getPrefix() const {
     }
     return prefix;
 }
+
+

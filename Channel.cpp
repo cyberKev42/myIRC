@@ -6,7 +6,7 @@
 /*   By: mvolgger <mvolgger@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/19 18:04:35 by mvolgger          #+#    #+#             */
-/*   Updated: 2025/12/19 18:04:41 by mvolgger         ###   ########.fr       */
+/*   Updated: 2025/12/20 14:40:43 by mvolgger         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ void Channel::addMember(Client* client) {
     if (!isMember(client)) {
         members.push_back(client);
         client->addChannel(this);
-        // Remove from invite list once they've joined
+        // remove from invite list once they joined
         inviteList.erase(client);
     }
 }
@@ -93,6 +93,69 @@ std::vector<Client*> Channel::getMembersWithPendingData(Client* exclude) const {
         }
     }
     return result;
+}
+
+const std::string& Channel::getName() const {
+    return name;
+}
+    
+const std::string& Channel::getTopic() const { 
+    return topic;
+}
+
+const std::string& Channel::getTopicSetBy() const {
+    return topicSetBy;
+}
+
+const std::string& Channel::getKey() const {
+    return key;
+}
+
+const std::vector<Client*>& Channel::getMembers() const {
+    return members;
+}
+
+bool Channel::getInviteOnly() const {
+    return inviteOnly;
+}
+
+bool Channel::getTopicRestricted() const {
+    return topicRestricted;
+}
+
+bool Channel::getHasKey() const {
+    return hasKey;
+}
+
+bool Channel::getHasUserLimit() const { 
+    return hasUserLimit;
+}
+
+size_t Channel::getUserLimit() const {
+    return userLimit;
+}
+
+void Channel::setTopic(const std::string& newTopic, const std::string& setBy) { 
+        topic = newTopic; 
+        topicSetBy = setBy;
+}
+
+void Channel::setKey(const std::string& newKey) { 
+    key = newKey; 
+    hasKey = !newKey.empty(); 
+}
+
+void Channel::setInviteOnly(bool mode) { 
+    inviteOnly = mode;
+}
+
+void Channel::setTopicRestricted(bool mode) {
+    topicRestricted = mode;
+}
+
+void Channel::setUserLimit(size_t limit) { 
+        userLimit = limit; 
+        hasUserLimit = (limit > 0); 
 }
 
 std::string Channel::getModeString() const {
