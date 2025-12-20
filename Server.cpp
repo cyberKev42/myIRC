@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mvolgger <mvolgger@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/19 18:03:52 by mvolgger          #+#    #+#             */
-/*   Updated: 2025/12/19 18:03:55 by mvolgger         ###   ########.fr       */
+/*   Updated: 2025/12/19 19:21:05 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -585,7 +585,7 @@ void Server::tryCompleteRegistration(Client* client) {
     client->queueMessage("003 " + nick + " :This server was created today");
     client->queueMessage("004 " + nick + " :" + serverName + " o itkol");
     client->queueMessage("375 " + nick + " :" + serverName + " Message of the Day -");
-    client->queueMessage("372 " + nick + " :Welcome to our IRC server!");
+    client->queueMessage("372 " + nick + " :*Happy Christmas* and welcome to our little IRC server!");
     client->queueMessage("376 " + nick + " :End of /MOTD command");
 }
 
@@ -664,17 +664,17 @@ void Server::cmdJoin(Client* client, const std::vector<std::string>& tokens) {
             channel->addMember(client);
         }
         
-        // Send JOIN to all channel members (including joiner)
+        // inform all members about joining
         std::string joinMsg = ":" + client->getPrefix() + " JOIN " + channel->getName();
         channel->broadcast(joinMsg, NULL);
         
-        // Send topic
+        // send topic
         if (!channel->getTopic().empty()) {
             client->queueMessage("332 " + client->getNickname() + " " + channel->getName() + 
                               " :" + channel->getTopic());
         }
         
-        // Send names list
+        // send names list
         client->queueMessage(channel->getNamesReply(client->getNickname()));
         client->queueMessage("366 " + client->getNickname() + " " + channel->getName() + 
                           " :End of /NAMES list");
