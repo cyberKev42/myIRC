@@ -6,7 +6,7 @@
 /*   By: kbrauer <kbrauer@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/19 18:03:52 by mvolgger          #+#    #+#             */
-/*   Updated: 2025/12/20 14:20:40 by kbrauer          ###   ########.fr       */
+/*   Updated: 2025/12/20 14:53:00 by kbrauer          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -418,9 +418,8 @@ void Server::removeClient(int clientFd) {
     
     Client* client = it->second;
     
-    // Remove from all the joind channels
     const std::set<Channel*>& joinedChannels = client->getJoinedChannels();
-    std::set<Channel*> channelsCopy = joinedChannels;  // Copy so we can modify it
+    std::set<Channel*> channelsCopy = joinedChannels;
     
     for (std::set<Channel*>::iterator chanIt = channelsCopy.begin(); 
          chanIt != channelsCopy.end(); ++chanIt) {
@@ -430,7 +429,6 @@ void Server::removeClient(int clientFd) {
         channel->removeMember(client);
     }
     
-    // Remove from poll array
     for (std::vector<struct pollfd>::iterator pollIt = pollFds.begin(); 
          pollIt != pollFds.end(); ++pollIt) {
         if (pollIt->fd == clientFd) {
@@ -623,14 +621,13 @@ void Server::cmdJoin(Client* client, const std::vector<std::string>& tokens) {
         return;
     }
     
-    // Handle multiple channels (comma-separated)
     std::string channelList = tokens[1];
     std::string keyList = (tokens.size() >= 3) ? tokens[2] : "";
     
     std::vector<std::string> channelNames;
     std::vector<std::string> keys;
     
-    // Split channels
+    // split channels
     std::istringstream chanStream(channelList);
     std::string chanToken;
     while (std::getline(chanStream, chanToken, ',')) {
@@ -639,7 +636,7 @@ void Server::cmdJoin(Client* client, const std::vector<std::string>& tokens) {
         }
     }
     
-    // Split keys
+    // split keys
     std::istringstream keyStream(keyList);
     std::string keyToken;
     while (std::getline(keyStream, keyToken, ',')) {
